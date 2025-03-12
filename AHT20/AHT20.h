@@ -8,14 +8,14 @@ private:
     float tempReading = 0;
     float humReading = 0;
     const static int addr = 0x38;
-    i2c_inst_t *i2c_port; // Add this line
+    i2c_inst_t *i2c_port;
 
     bool checkCalibration();
     void sensorInit();
 
 public:
     AHT20();
-    AHT20(i2c_inst_t *i2c); // Declare the constructor here!
+    AHT20(i2c_inst_t *i2c);
 
     void triggerMeasurement();
     float getTemp();
