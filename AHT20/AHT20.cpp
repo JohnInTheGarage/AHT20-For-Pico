@@ -3,19 +3,20 @@
 #include "hardware/i2c.h"
 #include "AHT20.h"
 
-#define I2C_PORT i2c0
-
-AHT20::AHT20() {
+AHT20::AHT20() : i2c_port(i2c0) { 
 }
 
-void AHT20::init(int sdaPort, int sclPort) {
+AHT20::AHT20(i2c_inst_t *i2c) : i2c_port(i2c) {
+}
+
+void AHT20::init(int sdaPin, int sclPin) {
     sleep_ms(20); // Wait 20ms for sensor to power on and go to idle state
 
-    i2c_init(I2C_PORT, 400000);
-    gpio_set_function(sdaPort, GPIO_FUNC_I2C);
-    gpio_set_function(sclPort,GPIO_FUNC_I2C);
-    gpio_pull_up(sdaPort);
-    gpio_pull_up(sclPort);
+    i2c_init(i2c_port, 400000);
+    gpio_set_function(sdaPin, GPIO_FUNC_I2C);
+    gpio_set_function(sclPin,GPIO_FUNC_I2C);
+    gpio_pull_up(sdaPin);
+    gpio_pull_up(sclPin);
 
     sleep_ms(40); // Wait 40ms after power on
     while(checkCalibration() == false) {
@@ -26,15 +27,15 @@ void AHT20::init(int sdaPort, int sclPort) {
 void AHT20::sensorInit() {
     uint8_t reg[3] = {0xBE, 0x08, 0x00};
 
-    i2c_write_blocking(I2C_PORT, addr, reg, 3, false);
+    i2c_write_blocking(i2c_port, addr, reg, 3, false);
     sleep_ms(10); // Wait 10ms for initialisation
 }
 
 bool AHT20::checkCalibration() {
     uint8_t statusReg = 0x71;
     uint8_t cal; // Result byte
-    i2c_write_blocking(I2C_PORT, addr, &statusReg, 1, false);
-    i2c_read_blocking(I2C_PORT, addr, &cal, 1, false);
+    i2c_write_blocking(i2c_port, addr, &statusReg, 1, false);
+    i2c_read_blocking(i2c_port, addr, &cal, 1, false);
 
     return ((cal >> 4) & 1) == 1; // Check 4th bit is equal to 1
 }
@@ -48,18 +49,18 @@ void AHT20::triggerMeasurement() {
     uint8_t status; // result status
     uint8_t data[6]; // data array
 
-    i2c_write_blocking(I2C_PORT, addr, measureCommand, 3, false);
+    i2c_write_blocking(i2c_port, addr, measureCommand, 3, false);
     sleep_ms(80); // Wait for measurement
 
-    i2c_read_blocking(I2C_PORT, addr, &status,1, false); // Read status byte
+    i2c_read_blocking(i2c_port, addr, &status,1, false); // Read status byte
 
     // Wait for status to be ready before continuing
     while (((status >> 8) & 1) != 0) {
         printf("Waiting for read to complete\n");
-        i2c_read_blocking(I2C_PORT, addr, &status,1, false);
+        i2c_read_blocking(i2c_port, addr, &status,1, false);
     }
 
-    i2c_read_blocking(I2C_PORT, addr, data, 6, false); // Read all data
+    i2c_read_blocking(i2c_port, addr, data, 6, false); // Read all data
 
     // Convert data for reading and store in variable
     // Based on Adafruit methodology for Arduino
